@@ -8,6 +8,7 @@ This project consists of two parts:
   phones.
 
 * An application running on the central site receives events from three or more
-  devices, and calculates the origin of the noise using triangulation. Detected
-  locations are made visible using the Openstreetmap or Google maps API.
+  devices, and calculates the origin of the noise using multilateration.
+  Detected locations are made visible using the Openstreetmap or Google maps
+  API.
 
