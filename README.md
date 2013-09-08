@@ -1,0 +1,4 @@
+fwlocator
+=========
+
+Fireworks locator
