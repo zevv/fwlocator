@@ -129,13 +129,16 @@ public class fwloc extends Activity implements LocationListener
 					NtpMessage.encodeTimestamp(packet.getData(), 40, (System.currentTimeMillis()/1000.0) + 2208988800.0);
 					socket.send(packet);
 					
-					System.out.println("NTP request sent, waiting for response...\n");
+					Log.d("fwloc", "NTP request sent, waiting for response...\n");
+
 					packet = new DatagramPacket(buf, buf.length);
 					socket.receive(packet);
 					double destinationTimestamp = (System.currentTimeMillis()/1000.0) + 2208988800.0;
 					
 					NtpMessage msg = new NtpMessage(packet.getData());
 					double offset = ((msg.receiveTimestamp - msg.originateTimestamp) + (msg.transmitTimestamp - destinationTimestamp)) / 2;
+					
+					Log.d("fwloc", String.format("offset %f", offset));
 					
 					socket.close();
 					publishProgress(offset);
