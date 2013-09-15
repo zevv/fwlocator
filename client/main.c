@@ -18,11 +18,10 @@ int on_tick(void *data);
 int on_sigint(int signum, void *data);
 
 
-static void on_ntp_offset(double offset)
+static void on_ntp_offset(double offset, double delay)
 {
-	printf("Offset %f\n", offset);
 	clock_offset = offset;
-	event_send("e:ntp o:%f", offset);
+	event_send("e:ntp o:%f d:%f", offset, delay);
 }
 
 void bye(void)
@@ -33,7 +32,7 @@ void bye(void)
 
 int main(int argc, char **argv)
 {
-	event_init(SERVER);
+	event_init(SERVER, HOST_ID);
 	ntp_init(SERVER, on_ntp_offset);
 	audio_init();
 	

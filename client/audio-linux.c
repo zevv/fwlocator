@@ -26,7 +26,9 @@ void audio_linux_init(void)
 {
 	int fd = open("/dev/dsp", O_RDONLY);
 	int format = AFMT_S16_LE;
+	int fragments=0x00020002;
 	ioctl(fd, SOUND_PCM_SETFMT, &format);
+	ioctl(fd, SNDCTL_DSP_SETFRAGMENT, &fragments);
 
 	mainloop_fd_add(fd, FD_READ, on_fd_audio, NULL);
 }

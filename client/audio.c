@@ -7,6 +7,7 @@
 #include "event.h"
 
 void audio_linux_init(void);
+void audio_android_init(void);
 
 static int backoff = 0;
 static uint8_t logtab[8192];
@@ -20,7 +21,9 @@ void audio_init(void)
 		logtab[i] = log(i) * 28;
 	}
 
-#ifdef linux
+#ifdef __ANDROID_API__
+	audio_android_init();
+#else
 	audio_linux_init();
 #endif
 
@@ -30,7 +33,7 @@ void audio_init(void)
 void audio_handle(int16_t *buf, int samples)
 {
 	int i, v;
-	double vavg;
+	static double vavg = 0;
 
 	for(i=0; i<samples; i++) {
 		v = buf[i];
@@ -40,8 +43,7 @@ void audio_handle(int16_t *buf, int samples)
 		vavg = vavg * 0.999 + v * 0.001;
 
 		if(!backoff && v - vavg > 80) {
-			printf("boom\n");
-			event_send("e:boom v=%d", v);
+			event_send("e:boom v=%d a=%.0f", v, vavg);
 			backoff = 4000;
 		}
 

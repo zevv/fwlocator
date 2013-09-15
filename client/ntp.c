@@ -77,7 +77,7 @@ struct ntp {
 	double t_recv;
 	double delay;
 	double offset;
-	void (*offset_cb)(double offset);
+	void (*offset_cb)(double offset, double delay);
 };
 
 
@@ -146,9 +146,9 @@ static int on_fd_ntp(int fd, void *data)
 		ntp->n --;
 		ntp_sync(ntp);
 	} else {
-		ntp->delay  = (T4 - T1) - (T3 - T2);
 		ntp->offset = ((T2 - T1) + (T3 - T4)) / 2.0;
-		if(ntp->offset_cb) ntp->offset_cb(ntp->offset);
+		ntp->delay  = (T4 - T1) - (T3 - T2);
+		if(ntp->offset_cb) ntp->offset_cb(ntp->offset, ntp->delay);
 		ntp->when = 60 * 60;
 	}
 
@@ -175,7 +175,7 @@ static int on_ntp_timer(void *data)
 }
 
 
-struct ntp *ntp_init(const char *addr, void (*offset_cb)(double offset))
+struct ntp *ntp_init(const char *addr, void (*offset_cb)(double offset, double delay))
 {
 	struct ntp *ntp = calloc(1, sizeof *ntp);
 

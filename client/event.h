@@ -1,7 +1,7 @@
 #ifndef event_h
 #define event_h
 
-void event_init(const char *ip);
+void event_init(const char *ip, const char *id);
 void event_send(const char *fmt, ...);
 
 #endif
