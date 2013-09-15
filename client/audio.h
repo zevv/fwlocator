@@ -4,7 +4,7 @@
 
 struct audio;
 
-struct audio *audio_open(void);
-void audio_close(struct audio *audio);
+void audio_init(void);
+void audio_handle(int16_t *data, int samples);
 
 #endif

@@ -6,7 +6,7 @@
 #include "mainloop.h"
 #include "event.h"
 #include "ntp.h"
-//#include "audio.h"
+#include "audio.h"
 
 #define SERVER "82.94.235.106"
 
@@ -35,6 +35,7 @@ int main(int argc, char **argv)
 {
 	event_init(SERVER);
 	ntp_init(SERVER, on_ntp_offset);
+	audio_init();
 	
 	mainloop_timer_add(60, 0, on_tick, NULL);
 	mainloop_signal_add(SIGINT, on_sigint, NULL);
