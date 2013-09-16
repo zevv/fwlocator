@@ -22,7 +22,7 @@ int on_fd_audio(int fd, void *data)
 }
 
 
-void audio_linux_init(void)
+void audio_dev_init(void)
 {
 	int fd = open("/dev/dsp", O_RDONLY);
 	int format = AFMT_S16_LE;

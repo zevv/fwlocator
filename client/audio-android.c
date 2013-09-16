@@ -21,14 +21,14 @@ static SLAndroidSimpleBufferQueueItf bufq;
 static int16_t buf[BLOCKSIZE];
 
 
-void bqRecorderCallback(SLAndroidSimpleBufferQueueItf bq, void *context)
+static void bqRecorderCallback(SLAndroidSimpleBufferQueueItf bq, void *context)
 {
 	write(fd[1], buf, sizeof buf);
 	(*bufq)->Enqueue(bufq, buf, 2 * BLOCKSIZE);
 }
 
 
-int on_audio(int fd, void *data)
+static int on_audio(int fd, void *data)
 {
 	int16_t buf[BLOCKSIZE];
 	read(fd, buf, sizeof buf);
@@ -36,7 +36,7 @@ int on_audio(int fd, void *data)
 	return 0;
 }
 
-void audio_android_init(void)
+void audio_dev_init(void)
 {
 	int r;
 
@@ -109,7 +109,6 @@ void audio_android_init(void)
 	pipe(fd);
 	mainloop_fd_add(fd[0], FD_READ, on_audio, NULL);
 	
-	printf("ok\n");
 end_recopen:
 	return;
 
