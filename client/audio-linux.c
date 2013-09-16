@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdint.h>
+#include <errno.h>
 #include <unistd.h>
 #include <math.h>
 #include <string.h>
@@ -11,6 +12,7 @@
 
 #include "audio.h"
 #include "mainloop.h"
+#include "log.h"
 
 
 int on_fd_audio(int fd, void *data)
@@ -25,6 +27,11 @@ int on_fd_audio(int fd, void *data)
 void audio_dev_init(void)
 {
 	int fd = open("/dev/dsp", O_RDONLY);
+	if(fd == -1) {
+		logf(LG_WRN, "Error opening audio: %s", strerror(errno));
+		return;
+	}
+
 	int format = AFMT_S16_LE;
 	int fragments=0x00020002;
 	ioctl(fd, SOUND_PCM_SETFMT, &format);

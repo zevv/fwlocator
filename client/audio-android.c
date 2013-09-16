@@ -56,7 +56,10 @@ void audio_dev_init(void)
 		NULL
 	};
 
-	SLDataLocator_AndroidSimpleBufferQueue loc_bq = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2};
+	SLDataLocator_AndroidSimpleBufferQueue loc_bq = { 
+		SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 
+		2 
+	};
 
 	SLDataFormat_PCM format_pcm = {
 		SL_DATAFORMAT_PCM, 
@@ -84,19 +87,15 @@ void audio_dev_init(void)
 	r = (*engine)->CreateAudioRecorder(engine, &recorder_obj, &audioSrc, &audioSnk, 1, id, req);
 	if (SL_RESULT_SUCCESS != r) goto end_recopen;
 
-	// realize the audio recorder
 	r = (*recorder_obj)->Realize(recorder_obj, SL_BOOLEAN_FALSE);
 	if (SL_RESULT_SUCCESS != r) goto end_recopen;
 	
-	// get the record interface
 	r = (*recorder_obj)->GetInterface(recorder_obj, SL_IID_RECORD, &(recorder));
 	if (SL_RESULT_SUCCESS != r) goto end_recopen;
 	
-	// get the buffer queue interface
 	r = (*recorder_obj)->GetInterface(recorder_obj, SL_IID_ANDROIDSIMPLEBUFFERQUEUE, &(bufq));
 	if (SL_RESULT_SUCCESS != r) goto end_recopen;
 	
-	// register callback on the buffer queue
 	r = (*bufq)->RegisterCallback(bufq, bqRecorderCallback, NULL);
 	if (SL_RESULT_SUCCESS != r) goto end_recopen;
 

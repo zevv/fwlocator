@@ -10,10 +10,13 @@
 #include <sys/time.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "ntp.h"
 #include "mainloop.h"
+#include "log.h"
 
+#define POOL_SIZE 10
 
 #define	LI_NOWARNING	(0 << 6)	/* no warning */
 #define	LI_PLUSSEC	(1 << 6)	/* add a second (61 seconds) */
@@ -69,14 +72,13 @@ struct ntp_msg {
 struct ntp {
 	int fd;
 	int n;
-	int when;
 	struct sockaddr_in sa;
 	struct ntp_msg req;
 	struct ntp_msg rsp;
 	double t_send;
 	double t_recv;
-	double delay;
-	double offset;
+	double offset_pool[POOL_SIZE];
+	int offset_head;
 	void (*offset_cb)(double offset, double delay);
 };
 
@@ -96,6 +98,8 @@ void ntp_sync(struct ntp *ntp)
 
 	sendto(ntp->fd, req, sizeof *req, 0, (struct sockaddr *)&ntp->sa, sizeof(ntp->sa));
 
+	logf(LG_DMP, "tx NTP request");
+
 	gettimeofday(&tv, NULL);
 	ntp->t_send = tv.tv_sec + JAN_1970 + 1.0e-6 * tv.tv_usec;
 }
@@ -106,6 +110,44 @@ static double lfp_to_d(struct l_fixedpt lfp)
 	lfp.i = ntohl(lfp.i);
 	lfp.f = ntohl(lfp.f);
 	return (double)(lfp.i) + ((double)lfp.f/ UINT_MAX);
+}
+
+
+static void handle_measurement(struct ntp *ntp, double offset)
+{
+	int i;
+	double offset_avg = 0;
+	double offset_deviation = 0;
+	int n = 0;
+
+	/* store offset in pool */
+
+	ntp->offset_pool[ntp->offset_head] = offset;
+	ntp->offset_head = (ntp->offset_head + 1) % POOL_SIZE;
+
+	/* calculate average */
+	 
+	for(i=0; i<POOL_SIZE; i++) {
+		if(ntp->offset_pool[i]) {
+			offset_avg += ntp->offset_pool[i];
+			n ++;
+		}
+	}
+	offset_avg /= n;
+
+	/* calculate standard deviation */
+
+	for(i=0; i<POOL_SIZE; i++) {
+		if(ntp->offset_pool[i]) {
+			double t = ntp->offset_pool[i] - offset_avg;
+			offset_deviation += t * t;
+		}
+	}
+	offset_deviation = sqrt(offset_deviation);
+
+	logf(LG_DBG, "offset=%f offset_avg=%f offset_deviation=%f", offset, offset_avg, offset_deviation);
+
+	if(ntp->offset_cb) ntp->offset_cb(offset_avg, offset_deviation);
 }
 
 
@@ -121,6 +163,8 @@ static int on_fd_ntp(int fd, void *data)
 
 	r = recv(ntp->fd, rsp, sizeof *rsp, 0);
 	if(r != sizeof *rsp) return 0;
+	
+	logf(LG_DMP, "rx NTP response");
 
 	/*
 	 * From RFC 2030 (with a correction to the delay math):
@@ -142,23 +186,17 @@ static int on_fd_ntp(int fd, void *data)
 	double T3 = lfp_to_d(rsp->xmttime); 
 	double T4 = ntp->t_recv;
 
+	logf(LG_DMP, "T1=%f T2=%f T3=%f T4=%f", T1, T2, T3, T4);
+
 	if(ntp->n > 0) {
 		ntp->n --;
 		ntp_sync(ntp);
 	} else {
-		ntp->offset = ((T2 - T1) + (T3 - T4)) / 2.0;
-		ntp->delay  = (T4 - T1) - (T3 - T2);
-		if(ntp->offset_cb) ntp->offset_cb(ntp->offset, ntp->delay);
-		ntp->when = 60 * 60;
+		double offset = ((T2 - T1) + (T3 - T4)) / 2.0;
+		handle_measurement(ntp, offset);
 	}
 
 	return 0;
-}
-
-
-double ntp_get_offset(struct ntp *ntp)
-{
-	return ntp->offset;
 }
 
 
@@ -166,10 +204,8 @@ static int on_ntp_timer(void *data)
 {
 	struct ntp *ntp = data;
 
-	if(ntp->when == 0) {
-		ntp->n = 3;
-		ntp_sync(ntp);
-	}
+	ntp->n = 2;
+	ntp_sync(ntp);
 
 	return 1;
 }
@@ -189,8 +225,6 @@ struct ntp *ntp_init(const char *addr, void (*offset_cb)(double offset, double d
 	
 	mainloop_fd_add(ntp->fd, FD_READ, on_fd_ntp, ntp);
 	mainloop_timer_add(5, 0, on_ntp_timer, ntp);
-
-	ntp->when = 0;
 
 	on_ntp_timer(ntp);
 
